@@ -1,131 +1,106 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
-import { ApiResponse } from '@/types';
+import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
-class APIClient {
-  private client: AxiosInstance;
-  private token: string | null = null;
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: API_BASE_URL,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    this.setupInterceptors();
-    this.loadToken();
+// Add token to requests
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
 
-  private loadToken() {
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('auth_token');
-      if (this.token) {
-        this.client.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
-      }
+// Handle responses
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      window.location.href = '/auth/login';
     }
+    return Promise.reject(error.response?.data || error.message);
   }
+);
 
-  private setupInterceptors() {
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Handle token expiry
-          localStorage.removeItem('auth_token');
-          window.location.href = '/auth/login';
-        }
-        return Promise.reject(error);
-      }
-    );
-  }
+export const authAPI = {
+  login: (email: string) => apiClient.post('/api/auth/login', { email }),
+  adminLogin: (email: string, password: string) =>
+    apiClient.post('/api/auth/admin-login', { email, password }),
+  verifyOtp: (email: string, otp: string) =>
+    apiClient.post('/api/auth/verify-otp', { email, otp }),
+  verifyToken: (token: string) =>
+    apiClient.post('/api/auth/verify-token', { token }),
+};
 
-  setToken(token: string) {
-    this.token = token;
-    this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    localStorage.setItem('auth_token', token);
-  }
+export const projectAPI = {
+  list: () => apiClient.get('/api/projects'),
+  get: (id: number) => apiClient.get(`/api/projects/${id}`),
+  create: (data: any) => apiClient.post('/api/projects', data),
+  enroll: (projectId: number, token: string) =>
+    apiClient.post(`/api/projects/${projectId}/enroll`, { token }),
+  getLeaderboard: (projectId: number) =>
+    apiClient.get(`/api/projects/${projectId}/leaderboard`),
+};
 
-  clearToken() {
-    this.token = null;
-    delete this.client.defaults.headers.common['Authorization'];
-    localStorage.removeItem('auth_token');
-  }
+export const teamAPI = {
+  create: (data: any) => apiClient.post('/api/teams', data),
+  get: (id: number) => apiClient.get(`/api/teams/${id}`),
+  invite: (teamId: number, inviteeEmail: string) =>
+    apiClient.post(`/api/teams/${teamId}/invite`, { invitee_email: inviteeEmail }),
+  respondToInvite: (teamId: number, invitationId: number, approve: boolean) =>
+    apiClient.post(`/api/teams/${teamId}/invitations/${invitationId}/respond`, { approve }),
+  lock: (teamId: number) => apiClient.post(`/api/teams/${teamId}/lock`, {}),
+  getMembers: (teamId: number) => apiClient.get(`/api/teams/${teamId}/members`),
+};
 
-  // GET
-  async get<T>(url: string, config = {}) {
-    try {
-      const response = await this.client.get<ApiResponse<T>>(url, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
+export const submissionAPI = {
+  upload: (teamId: number, stage: string, fileUrl: string) =>
+    apiClient.post(`/api/submissions/${teamId}/${stage}`, { file_url: fileUrl }),
+  get: (id: number) => apiClient.get(`/api/submissions/${id}`),
+  approve: (submissionId: number, approve: boolean) =>
+    apiClient.post(`/api/submissions/${submissionId}/approve`, { approve }),
+  getTeamSubmissions: (teamId: number) =>
+    apiClient.get(`/api/submissions/team/${teamId}`),
+  getFeedback: (submissionId: number) =>
+    apiClient.get(`/api/submissions/${submissionId}/feedback`),
+};
 
-  // POST
-  async post<T>(url: string, data: any, config = {}) {
-    try {
-      const response = await this.client.post<ApiResponse<T>>(url, data, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
+export const supervisorAPI = {
+  getPendingSubmissions: () => apiClient.get('/api/supervisor/submissions'),
+  getSubmissionDetail: (submissionId: number) =>
+    apiClient.get(`/api/supervisor/submissions/${submissionId}`),
+  scoreSubmission: (submissionId: number, score: number, comments?: string) =>
+    apiClient.post(`/api/supervisor/submissions/${submissionId}/score`, { score, comments }),
+  getStats: () => apiClient.get('/api/supervisor/stats'),
+};
 
-  // PUT
-  async put<T>(url: string, data: any, config = {}) {
-    try {
-      const response = await this.client.put<ApiResponse<T>>(url, data, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
+export const adminAPI = {
+  getRequests: () => apiClient.get('/api/admin/requests'),
+  approveRequest: (requestId: number) =>
+    apiClient.post(`/api/admin/requests/${requestId}/approve`, {}),
+  rejectRequest: (requestId: number) =>
+    apiClient.post(`/api/admin/requests/${requestId}/reject`, {}),
+  getLogs: (skip?: number, limit?: number) =>
+    apiClient.get('/api/admin/logs', { params: { skip, limit } }),
+  getStats: () => apiClient.get('/api/admin/stats'),
+};
 
-  // DELETE
-  async delete<T>(url: string, config = {}) {
-    try {
-      const response = await this.client.delete<ApiResponse<T>>(url, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
+export const chatbotAPI = {
+  ask: (question: string) => apiClient.post('/api/chatbot/ask', { question }),
+  getChatHistory: (limit?: number) =>
+    apiClient.get('/api/chatbot/sessions', { params: { limit } }),
+  deleteSession: (sessionId: number) =>
+    apiClient.delete(`/api/chatbot/sessions/${sessionId}`),
+};
 
-  // PATCH
-  async patch<T>(url: string, data: any, config = {}) {
-    try {
-      const response = await this.client.patch<ApiResponse<T>>(url, data, config);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // File Upload
-  async uploadFile<T>(url: string, file: File, additionalData?: any) {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      if (additionalData) {
-        Object.keys(additionalData).forEach((key) => {
-          formData.append(key, additionalData[key]);
-        });
-      }
-
-      const response = await this.client.post<ApiResponse<T>>(url, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  }
-}
-
-export const apiClient = new APIClient();
+export default apiClient;

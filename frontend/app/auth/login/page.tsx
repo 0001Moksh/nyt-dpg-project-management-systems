@@ -1,176 +1,133 @@
 'use client';
 
-import { useState, FormEvent, ChangeEvent } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/services/auth';
-import Link from 'next/link';
+import toast from 'react-hot-toast';
+import { authAPI } from '@/services/api';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [adminMode, setAdminMode] = useState(false);
+  const [password, setPassword] = useState('');
+  const router = useRouter();
 
-  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    setError('');
-  };
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      // Validate email
-      if (!email || !email.includes('@')) {
-        setError('Please enter a valid email address');
-        setLoading(false);
-        return;
+      const response: any = await authAPI.login(email);
+      
+      if (response.message === 'OTP sent' || response.detail === 'OTP sent to email') {
+        // Redirect to OTP verification
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
+        toast.success('OTP sent to your email');
+      } else if (response.role === 'admin') {
+        setAdminMode(true);
+        toast.success('Please enter your admin password');
       }
-
-      // Request OTP
-      const response = await authService.requestOTP(email);
-
-      if (response.success) {
-        setSuccess(true);
-        // Redirect to OTP verification after 2 seconds
-        setTimeout(() => {
-          router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
-        }, 1500);
-      } else {
-        setError(response.error || 'Failed to send OTP. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('[v0] Login error:', err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          'An error occurred. Please try again.'
-      );
+    } catch (error: any) {
+      toast.error(error.detail || error.message || 'Failed to send OTP');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response: any = await authAPI.adminLogin(email, password);
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('user', JSON.stringify({
+        id: response.user_id,
+        email,
+        name: response.name || 'Admin',
+        role: response.role || 'admin',
+      }));
+      
+      router.push('/admin/dashboard');
+      toast.success('Admin login successful!');
+    } catch (error: any) {
+      toast.error(error.detail || 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-light to-background px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 px-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary mb-2">DPG PMS</h1>
-          <p className="text-muted">Project Management System</p>
-          <p className="text-sm text-muted mt-1">DPG ITM College</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            DPG Project Management
+          </h1>
+          <p className="text-gray-600">Sign in to your account</p>
         </div>
 
-        {/* Card */}
-        <div className="card shadow-lg">
-          <div className="card-content">
-            {/* Success Message */}
-            {success && (
-              <div className="alert alert-success mb-6 animate-fade-in">
-                OTP sent successfully! Redirecting...
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className="alert alert-danger mb-6 animate-fade-in">
-                {error}
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="form-label">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={email}
-                  onChange={handleEmailChange}
-                  placeholder="you@dpg-itm.edu.in"
-                  required
-                  disabled={loading || success}
-                  className="w-full"
-                  aria-label="Email address"
-                />
-                <p className="text-xs text-muted mt-1">
-                  We will send a one-time password to this email
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || success || !email}
-                className="w-full btn btn-primary py-3 font-semibold"
-              >
-                {loading ? 'Sending OTP...' : 'Send OTP'}
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="divider"></div>
-              <div className="absolute inset-x-0 -top-3 flex justify-center">
-                <span className="bg-background px-2 text-xs text-muted">
-                  or
-                </span>
-              </div>
-            </div>
-
-            {/* Demo Credentials */}
-            <div className="bg-surface p-4 rounded-md border border-border">
-              <p className="text-xs font-semibold text-foreground mb-2">
-                Demo Credentials:
-              </p>
-              <div className="space-y-1 text-xs text-muted">
-                <p>
-                  <strong>Student:</strong> student@dpg-itm.edu.in
-                </p>
-                <p>
-                  <strong>Supervisor:</strong> supervisor@dpg-itm.edu.in
-                </p>
-                <p>
-                  <strong>Admin:</strong> admin@dpg-itm.edu.in
-                </p>
-                <p className="mt-2 pt-2 border-t border-border">
-                  OTP: Check backend console (development)
-                </p>
-              </div>
-            </div>
+        <form onSubmit={adminMode ? handleAdminLogin : handleStudentLogin} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email Address
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+              placeholder="your@email.com"
+              disabled={isLoading}
+            />
           </div>
 
-          {/* Footer */}
-          <div className="card-footer bg-surface text-center text-xs text-muted">
-            <p>
-              By logging in, you agree to our{' '}
-              <Link href="/terms" className="text-primary hover:underline">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link href="/privacy" className="text-primary hover:underline">
-                Privacy Policy
-              </Link>
-            </p>
-          </div>
-        </div>
+          {adminMode && (
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                placeholder="••••••••"
+                disabled={isLoading}
+              />
+            </div>
+          )}
 
-        {/* Footer Text */}
-        <div className="text-center mt-6 text-sm text-muted">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          >
+            {isLoading ? 'Loading...' : adminMode ? 'Sign in as Admin' : 'Continue'}
+          </button>
+        </form>
+
+        {adminMode && (
+          <button
+            onClick={() => {
+              setAdminMode(false);
+              setPassword('');
+            }}
+            className="w-full mt-4 text-blue-600 hover:text-blue-700 text-sm font-medium"
+          >
+            Back to Student Login
+          </button>
+        )}
+
+        <div className="mt-6 text-center text-sm text-gray-600">
           <p>
-            Powered by{' '}
-            <a
-              href="https://nexyugtech.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              NexyugTech
+            Need to request supervisor access?{' '}
+            <a href="/request-access" className="text-blue-600 hover:underline">
+              Apply here
             </a>
           </p>
         </div>

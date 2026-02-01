@@ -1,457 +1,393 @@
-# DPG Project Management System (PMS)
+# DPG Project Management System
 
-A comprehensive, large-scale project management system for DPG ITM College by NexyugTech Company. Built with React frontend and FastAPI backend, featuring role-based access, SMTP email notifications, OTP authentication, and Groq LLM-powered RAG chatbot.
+A comprehensive project management system for educational institutions built with modern web technologies and AI-powered support.
 
-## 📋 Project Overview
+## ✨ Features
 
-The DPG PMS is designed to manage academic projects with three main roles:
-- **Students**: Form teams, submit deliverables, track progress
-- **Supervisors**: Review submissions, provide feedback, score stages
-- **Admins**: Manage projects, assign supervisors, generate reports
+- ✅ **OTP + JWT Authentication** - Secure 2-factor login with 5-min OTP and 24-hr JWT
+- ✅ **Role-Based Access Control** - Admin, Supervisor, and Student roles
+- ✅ **Project Management** - Create and manage projects with enrollment tokens
+- ✅ **Team System** - Teams with leader, members, and approval workflows
+- ✅ **4-Stage Submissions** - Synopsis, Progress Report 1-2, Final Submission
+- ✅ **Supervisor Scoring** - Score submissions (0-10) with feedback
+- ✅ **Admin Scoring** - Final scores (0-20) and audit logs
+- ✅ **Auto-Leaderboard** - Real-time ranking with final scores
+- ✅ **Email Notifications** - For OTP, invites, feedback, deadlines
+- ✅ **RAG Chatbot** - AI-powered FAQ using Groq LLM
+- ✅ **OneDrive Integration** - PDF file storage with metadata in database
+- ✅ **Audit Trail** - Complete admin action logging
 
-### Key Features
+## 📊 Tech Stack
 
-✅ **Email OTP Authentication** - Secure login via SMTP  
-✅ **Role-Based Dashboards** - Customized interfaces for each role  
-✅ **Team Management** - Form teams, manage members, lock teams  
-✅ **4-Stage Project Submission** - Synopsis, Progress 1, Progress 2, Final Submission  
-✅ **Supervisor Review System** - Score submissions (0-10), provide feedback  
-✅ **Leaderboard** - Rank teams by final score (30 points total)  
-✅ **SMTP Email Notifications** - OTP, team approvals, submission alerts, feedback  
-✅ **RAG Chatbot** - Role-specific AI assistant powered by Groq LLM  
-✅ **Analytics & Risk Prediction** - Predict delays and project risks  
-✅ **OneDrive Integration** - Secure file storage for submissions  
-✅ **Scalable Architecture** - Separate frontend and backend repos ready for microservices  
-
-## 🏗️ Project Structure
-
-```
-DPG-PMS/
-├── frontend/                    # React/Next.js Frontend
-│   ├── app/
-│   │   ├── layout.tsx          # Root layout
-│   │   ├── page.tsx            # Home page
-│   │   ├── globals.css         # Global styles
-│   │   ├── (auth)/             # Auth routes
-│   │   ├── (student)/          # Student dashboard
-│   │   ├── (supervisor)/       # Supervisor dashboard
-│   │   └── (admin)/            # Admin dashboard
-│   ├── components/
-│   │   ├── ui/                 # shadcn/ui components
-│   │   ├── auth/               # Auth components
-│   │   ├── dashboard/          # Dashboard components
-│   │   └── common/             # Shared components
-│   ├── services/
-│   │   ├── api.ts              # API client
-│   │   ├── auth.ts             # Auth service
-│   │   └── projects.ts         # Project service
-│   ├── hooks/                  # Custom hooks
-│   ├── store/                  # Zustand stores
-│   ├── types/                  # TypeScript types
-│   └── utils/                  # Utilities
-│
-├── backend/                     # FastAPI Backend
-│   ├── app/
-│   │   ├── main.py             # FastAPI app
-│   │   ├── config.py           # Configuration
-│   │   ├── models.py           # Database models
-│   │   ├── schemas.py          # Pydantic schemas
-│   │   ├── services/
-│   │   │   ├── auth_service.py       # Auth logic
-│   │   │   ├── email_service.py      # SMTP emails
-│   │   │   ├── rag_chatbot.py        # Groq LLM
-│   │   │   ├── projects.py           # Project logic
-│   │   │   └── submissions.py        # Submission logic
-│   │   ├── routes/
-│   │   │   ├── auth.py         # Auth endpoints
-│   │   │   ├── projects.py     # Project endpoints
-│   │   │   ├── teams.py        # Team endpoints
-│   │   │   ├── submissions.py  # Submission endpoints
-│   │   │   ├── chatbot.py      # Chatbot endpoints
-│   │   │   └── admin.py        # Admin endpoints
-│   │   ├── middleware/         # Custom middleware
-│   │   └── utils/              # Utilities
-│   ├── migrations/             # Database migrations
-│   ├── tests/                  # Unit tests
-│   ├── requirements.txt        # Python dependencies
-│   └── main.py                 # Entry point
-│
-├── .env.example                 # Environment template
-└── README.md                    # This file
-```
+| Component | Technology |
+|-----------|-----------|
+| **Frontend** | Next.js 14, React 18, Tailwind CSS, Zustand |
+| **Backend** | FastAPI, SQLAlchemy, Alembic |
+| **Database** | PostgreSQL / Supabase |
+| **Storage** | OneDrive (PDFs) |
+| **Auth** | JWT + OTP (SMS/Email) |
+| **AI/LLM** | Groq API (Mixtral-8x7b) |
+| **Deployment** | Azure (App Service / Static Web Apps / Container Apps) |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
-- Node.js 18+ (for frontend)
-- Python 3.9+ (for backend)
-- PostgreSQL 12+
-- SMTP account (Gmail, SendGrid, etc.)
-- Groq API key for LLM
-
-### Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Create .env.local file
-cp ../.env.example .env.local
-
-# Update with your values
-# NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-
-# Run development server
-npm run dev
-```
-
-Visit `http://localhost:3000`
+- Node.js 18+
+- Python 3.10+
+- PostgreSQL 13+ (or Supabase account)
 
 ### Backend Setup
 
 ```bash
 cd backend
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
-# Create .env file
-cp ../.env.example .env
+# Configure environment
+cp .env.example .env
+# Edit .env with your credentials
 
-# Update with your values
-# DATABASE_URL=postgresql://user:password@localhost:5432/dpg_pms
-# SMTP_HOST=smtp.gmail.com
-# SMTP_USER=your-email@gmail.com
-# SMTP_PASSWORD=your-app-password
-# GROQ_API_KEY=your-groq-api-key
-
-# Run database migrations
-alembic upgrade head
-
-# Run development server
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Run server
+uvicorn app.main:app --reload --port 8000
 ```
 
-Visit `http://localhost:8000/docs` for API documentation
+**Backend URL:** http://localhost:8000
+**API Docs:** http://localhost:8000/docs
 
-## 🔐 Environment Variables
+### Frontend Setup
 
-See `.env.example` for the complete list. Key variables:
-
-```env
-# Frontend
-NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.com
-NEXT_PUBLIC_APP_NAME=DPG Project Management System
-
-# Backend API
-FASTAPI_BASE_URL=https://your-api-domain.com
-
-# Database (PostgreSQL)
-DATABASE_URL=postgresql://user:password@localhost:5432/dpg_pms
-
-# SMTP Email (Gmail example)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASSWORD=your-app-specific-password
-
-# Authentication
-JWT_SECRET_KEY=your-super-secret-jwt-key
-OTP_EXPIRY_MINUTES=5
-OTP_LENGTH=6
-
-# Groq LLM
-GROQ_API_KEY=your-groq-api-key
-GROQ_MODEL_NAME=mixtral-8x7b-32768
-
-# OneDrive/Azure Storage
-ONEDRIVE_CLIENT_ID=your-client-id
-ONEDRIVE_CLIENT_SECRET=your-client-secret
-ONEDRIVE_TENANT_ID=your-tenant-id
-ONEDRIVE_FOLDER_ID=your-folder-id
-
-# CORS
-CORS_ORIGINS=http://localhost:3000,http://localhost:3001,https://your-domain.com
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
-## 📧 SMTP Configuration
+**Frontend URL:** http://localhost:3000
 
-### Gmail Setup
-1. Enable 2-Factor Authentication
-2. Generate App Password: https://myaccount.google.com/apppasswords
-3. Use app password in `SMTP_PASSWORD`
-
-### SendGrid Setup
-1. Create API key at https://app.sendgrid.com/settings/api_keys
-2. Use `apikey` as SMTP_USER and API key as SMTP_PASSWORD
-
-### Other Providers
-- Microsoft 365: `smtp.office365.com:587`
-- Outlook: `smtp-mail.outlook.com:587`
-- AWS SES: `email-smtp.region.amazonaws.com:587`
-
-## 🔌 API Endpoints
+## 📋 API Endpoints
 
 ### Authentication
 ```
-POST   /api/v1/auth/request-otp      - Request OTP
-POST   /api/v1/auth/verify-otp       - Verify OTP and Login
-GET    /api/v1/auth/me               - Get current user
-POST   /api/v1/auth/logout           - Logout
+POST   /api/auth/login              # Send OTP
+POST   /api/auth/verify-otp         # Verify OTP & get JWT
+POST   /api/auth/admin-login        # Admin password login
+GET    /api/auth/verify-token       # Verify JWT
 ```
 
-### Projects
+### Projects & Enrollment
 ```
-GET    /api/v1/projects              - List projects
-POST   /api/v1/projects              - Create project
-GET    /api/v1/projects/{id}         - Get project
-PUT    /api/v1/projects/{id}         - Update project
-POST   /api/v1/projects/{id}/generate-enrollment-link
+POST   /api/projects                # Create project (Admin)
+GET    /api/projects                # List projects
+GET    /api/projects/{id}           # Get project details
+POST   /api/projects/{id}/enroll    # Enroll student
+GET    /api/projects/{id}/leaderboard  # Final rankings
 ```
 
 ### Teams
 ```
-GET    /api/v1/teams/{id}            - Get team
-POST   /api/v1/teams/{id}/join       - Join team
-POST   /api/v1/teams/{id}/leave      - Leave team
-POST   /api/v1/teams/{id}/members/{memberId}/approve
+POST   /api/teams                   # Create team (Student)
+GET    /api/teams/{id}              # Get team details
+POST   /api/teams/{id}/invite       # Invite member
+POST   /api/teams/{id}/invitations/{inv_id}/respond  # Accept/reject
+POST   /api/teams/{id}/lock         # Lock team for submission
+GET    /api/teams/{id}/members      # List members
 ```
 
-### Submissions
+### Submissions (4-Stage)
 ```
-GET    /api/v1/submissions           - List submissions
-POST   /api/v1/submissions           - Upload submission
-POST   /api/v1/submissions/{id}/approve
-POST   /api/v1/submissions/{id}/reject
-POST   /api/v1/submissions/{id}/review - Supervisor review
+POST   /api/submissions/{team_id}/{stage}      # Upload
+POST   /api/submissions/{id}/approve            # Member approval
+GET    /api/submissions/{id}                    # Get details
+POST   /api/submissions/{id}/supervisor-feedback  # Supervisor score
+POST   /api/submissions/{id}/admin-feedback     # Admin score
+GET    /api/submissions/{id}/feedback           # Get feedback
+```
+
+### Admin Panel
+```
+GET    /api/admin/requests          # Supervisor requests
+POST   /api/admin/requests/{id}/approve      # Approve request
+POST   /api/admin/requests/{id}/reject       # Reject request
+GET    /api/admin/logs              # Audit logs
+GET    /api/admin/stats             # Dashboard stats
 ```
 
 ### Chatbot
 ```
-POST   /api/v1/chatbot/chat          - Send message
-POST   /api/v1/chatbot/faq           - Get FAQ answer
+POST   /api/chatbot/ask             # Ask chatbot
+GET    /api/chatbot/sessions        # Chat history
+DELETE /api/chatbot/sessions/{id}   # Delete session
 ```
 
-### Admin
+## 🗂️ Project Structure
+
 ```
-GET    /api/v1/admin/users           - List users
-POST   /api/v1/admin/users           - Create user
-GET    /api/v1/admin/analytics       - Analytics dashboard
-GET    /api/v1/leaderboard           - Leaderboard
+dpg-pms/
+├── backend/
+│   ├── app/
+│   │   ├── core/              # Config, JWT, OTP, Security
+│   │   ├── models/            # SQLAlchemy models
+│   │   ├── schemas/           # Pydantic schemas
+│   │   ├── services/          # Business logic
+│   │   ├── routes/            # API routes
+│   │   ├── db/                # Database config
+│   │   └── main.py            # FastAPI app
+│   ├── alembic/               # Database migrations
+│   ├── requirements.txt
+│   └── .env
+│
+├── frontend/
+│   ├── app/                   # Next.js pages
+│   │   ├── auth/              # Login, OTP verify
+│   │   ├── admin/             # Admin dashboard
+│   │   ├── student/           # Student dashboard
+│   │   └── supervisor/        # Supervisor dashboard
+│   ├── components/            # Reusable components
+│   ├── services/              # API clients
+│   ├── store/                 # Zustand state management
+│   ├── utils/                 # Helper utilities
+│   └── package.json
+│
+├── .gitignore
+├── README.md                  # This file
+├── DEPLOYMENT.md              # Detailed deployment guide
+└── .env.local                 # Environment variables
 ```
 
-Full API documentation: `http://localhost:8000/docs`
+## 🔐 Security Features
 
-## 🎨 Frontend Architecture
+- **JWT Tokens:** 24-hour expiry, HS256 algorithm
+- **OTP:** 6-digit code, 5-minute expiry
+- **Password Hashing:** bcrypt for admin passwords
+- **CORS:** Environment-configurable origins
+- **Rate Limiting:** 100 req/min (configurable)
+- **Role Guards:** All endpoints protected by role
+- **Audit Logs:** Complete admin action trail
+- **File Validation:** Size limits and type checking
 
-### Authentication Flow
-1. User enters email → Request OTP
-2. OTP sent via SMTP
-3. User enters OTP → Verify
-4. JWT token returned
-5. User redirected based on role
-
-### Role-Based Routes
-- `/auth/login` - Login page
-- `/student/*` - Student dashboard (protected)
-- `/supervisor/*` - Supervisor dashboard (protected)
-- `/admin/*` - Admin dashboard (protected)
-
-### State Management (Zustand)
-- `useAuthStore` - Authentication state
-- `useProjectStore` - Project state
-- `useNotificationStore` - Notifications
-
-### API Client (SWR)
-- Automatic caching
-- Real-time updates
-- Error handling
-- Request deduplication
-
-## 🗄️ Database Schema
+## 📊 Database Tables
 
 ### Core Tables
-- **users** - User accounts (Student, Supervisor, Admin)
-- **projects** - Project definitions
-- **teams** - Student teams
-- **team_members** - Team memberships
-- **submissions** - Project submissions
-- **stage_scores** - Scoring records
-- **notifications** - Email/In-app notifications
-- **chat_sessions** - Chatbot sessions
-- **chat_messages** - Chat messages
+- **Users** - Stores user profiles, roles, authentication
+- **Projects** - Project definitions with enrollment tokens
+- **Teams** - Team groupings with leader and members
+- **Submissions** - 4-stage submission workflow
+- **SubmissionApprovals** - Member approvals per submission
+- **SubmissionFeedback** - Supervisor and admin scores
+- **SupervisorRequests** - Access request management
+- **AdminLogs** - Audit trail for all admin actions
 
-### Relationships
+### Support Tables
+- **OTPTokens** - OTP storage and expiry
+- **TeamInvitations** - Team member invitations
+- **ProjectEnrollments** - Student enrollments
+- **Notifications** - In-app notifications
+- **ChatSessions** - Chatbot conversation history
+
+## 🎯 Workflow Examples
+
+### Student Login & Enrollment
+1. Student enters email → OTP sent
+2. Enters OTP → JWT token issued
+3. Redirected to `/student/dashboard`
+4. Clicks "Enroll Project" with provided token
+5. Auto-mapped to project
+
+### Team Creation & Submission
+1. Student creates team → Adds name
+2. Invites members via email → Members receive invites
+3. Members accept → Team becomes ACTIVE
+4. Leader uploads submission → All members review
+5. If all approve → Supervisor sees for review
+6. Supervisor scores (0-10) → Admin adds final score (0-20)
+
+### Admin Supervisor Access
+1. Supervisor applies for access → `/request-access`
+2. Admin reviews `/admin/requests`
+3. Approves → Supervisor user created
+4. Supervisor receives login email
+
+## 📧 Email Configuration
+
+Configure in `.env`:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=app-specific-password  # Not your actual password
+SMTP_FROM_EMAIL=noreply@yourdomain.com
 ```
-Project → Teams → TeamMembers → Users
-        → Submissions → StageScores
-Users → Notifications
-Users → ChatSessions → ChatMessages
+
+⚠️ **Gmail Users:** Use [App-specific password](https://myaccount.google.com/apppasswords), not your regular password.
+
+## 🤖 AI Chatbot
+
+Uses Groq API with Mixtral-8x7b model for contextual FAQ answers.
+
+**Configure:**
+```env
+GROQ_API_KEY=your-groq-api-key
+GROQ_MODEL_NAME=mixtral-8x7b-32768
 ```
 
-## 🤖 RAG Chatbot
+**Features:**
+- Role-aware responses
+- FAQ knowledge base
+- Chat history per user
+- Conversation context
 
-The system includes a role-specific RAG chatbot powered by **Groq LLM**:
+## 📁 File Storage
 
-### Features
-- **Role-Based Responses** - Different prompts for Student/Supervisor/Admin
-- **Chat History** - Maintains conversation context
-- **FAQ Database** - Quick answers for common questions
-- **Document Context** - References project documentation
+**OneDrive Integration:**
+- Submissions stored as PDFs on OneDrive
+- Only URLs stored in database
+- Supports up to 50 MB per file
+- Automatic folder organization
 
-### Usage
+**Configure:**
+```env
+ONEDRIVE_TENANT_ID=your-tenant-id
+ONEDRIVE_CLIENT_ID=your-client-id
+ONEDRIVE_CLIENT_SECRET=your-secret
+ONEDRIVE_FOLDER_ID=your-folder-id
+```
+
+## 🚀 Deployment
+
+### Quick Deploy on Azure
+
+**Backend (Container Apps):**
 ```bash
-# Backend endpoint
-POST /api/v1/chatbot/chat
-{
-  "message": "How do I submit my project?",
-  "role": "STUDENT"
-}
+# Create ACR
+az acr create -g mygroup -n myregistry --sku Basic
 
-# Response
-{
-  "success": true,
-  "response": "To submit your project...",
-  "tokens_used": 150
-}
+# Build and push image
+az acr build -r myregistry -t dpg-pms:latest .
+
+# Deploy to Container Apps
+az containerapp create \
+  -n dpg-api \
+  -g mygroup \
+  --image myregistry.azurecr.io/dpg-pms:latest \
+  --target-port 8000 \
+  --environment myenv
 ```
 
-## 📊 Scoring System
+**Frontend (Static Web Apps or Vercel):**
+```bash
+# With Vercel (recommended)
+npm install -g vercel
+vercel --prod
 
-### Stage Scoring (Supervisor)
-- Each stage scored out of 10
-- 4 stages total
-- Supervisor Average = Sum of all scores / 4
+# Or with Azure Static Web Apps
+az staticwebapp create \
+  -n dpg-web \
+  -g mygroup \
+  --source https://github.com/user/repo \
+  --app-location frontend
+```
 
-### Final Scoring
-- Supervisor Average: out of 10
-- Admin Score: out of 20
-- **Final Score = Supervisor Average + Admin Score** (out of 30)
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete guide.
 
-### Leaderboard
-Teams ranked by final score (descending)
+## 📱 Responsive Design
 
-## 🔔 Email Notifications
-
-The system sends emails for:
-- **OTP Login** - 6-digit codes, 5-minute validity
-- **Team Approval** - Invitation links for members
-- **Supervisor Assignment** - Notify supervisors of teams
-- **Submission Alerts** - Notify supervisors of submissions
-- **Review Feedback** - Send scores and feedback to teams
-- **Deadline Reminders** - Upcoming submission deadlines
+- Mobile-first Tailwind CSS
+- Works on desktop, tablet, mobile
+- Progressive enhancement
+- Accessible (WCAG 2.1 AA)
 
 ## 🧪 Testing
 
-### Frontend Tests
 ```bash
-cd frontend
-npm run test
-npm run test:coverage
-```
-
-### Backend Tests
-```bash
+# Backend
 cd backend
+pip install pytest
 pytest
-pytest --cov=app
+
+# Frontend
+cd frontend
+npm test
 ```
 
-## 📦 Deployment
+## 📝 Environment Variables
 
-### Frontend (Vercel)
-```bash
-vercel deploy
+### Backend (.env)
+```
+# App
+APP_NAME=DPG Project Management System
+DEBUG=false
+
+# Database
+DATABASE_URL=postgresql://user:pass@host:5432/db
+
+# JWT & Auth
+JWT_SECRET_KEY=your-super-secret-key
+OTP_EXPIRY_MINUTES=5
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=app-password
+
+# OneDrive
+ONEDRIVE_TENANT_ID=...
+ONEDRIVE_CLIENT_ID=...
+ONEDRIVE_CLIENT_SECRET=...
+ONEDRIVE_FOLDER_ID=...
+
+# Groq
+GROQ_API_KEY=...
+
+# Security
+CORS_ORIGINS=http://localhost:3000
 ```
 
-### Backend (Azure)
-```bash
-# Build Docker image
-docker build -t dpg-pms .
-
-# Push to Azure Container Registry
-az acr build --registry your-registry --image dpg-pms:latest .
-
-# Deploy to Azure App Service
-az webapp deployment source config-zip --resource-group your-rg --name your-app --src-path app.zip
+### Frontend (.env.local)
 ```
-
-## 🛡️ Security Best Practices
-
-✅ **OTP Authentication** - No password stored  
-✅ **JWT Tokens** - Secure session management  
-✅ **HTTPS Only** - All production traffic encrypted  
-✅ **CORS Enabled** - Cross-origin restrictions  
-✅ **SQL Injection Prevention** - SQLAlchemy ORM  
-✅ **Rate Limiting** - Prevent abuse (implement in production)  
-✅ **Role-Based Access Control** - Routes protected by role  
-✅ **Environment Variables** - Sensitive data not in code  
-
-## 📝 Logging
-
-Logs are written to:
-- **Development**: Console output
-- **Production**: `/var/log/dpg-pms/app.log`
-
-Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_APP_NAME=DPG Project Management System
+```
 
 ## 🐛 Troubleshooting
 
-### SMTP Connection Error
-- Check credentials in `.env`
-- Verify SMTP server settings
-- For Gmail, ensure app password is used (not account password)
-
-### Database Connection Error
-- Ensure PostgreSQL is running
-- Check `DATABASE_URL` format
-- Run migrations: `alembic upgrade head`
-
-### CORS Error
-- Verify frontend URL in `CORS_ORIGINS`
-- Check `NEXT_PUBLIC_API_BASE_URL`
-
-### OTP Not Received
-- Check SMTP configuration
-- Verify email address
-- Check spam/junk folder
+| Issue | Solution |
+|-------|----------|
+| OTP not arriving | Check SMTP credentials, email spam folder |
+| Login fails | Verify DB connection, clear browser cache |
+| Submissions not saving | Check OneDrive credentials, file size |
+| API 500 errors | Check backend logs, verify .env variables |
+| Chatbot not working | Verify Groq API key and rate limits |
 
 ## 📚 Documentation
 
-- [API Documentation](http://localhost:8000/docs)
-- [Frontend Setup Guide](./frontend/README.md)
-- [Backend Setup Guide](./backend/README.md)
-- [Database Schema](./backend/docs/schema.md)
-- [Architecture Overview](./docs/architecture.md)
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Complete deployment guide
+- **[backend/README.md](./backend/README.md)** - Backend setup details
+- **[frontend/README.md](./frontend/README.md)** - Frontend setup details
+- **API Docs:** http://localhost:8000/docs (Swagger UI)
 
 ## 🤝 Contributing
 
-1. Create feature branch: `git checkout -b feature/your-feature`
-2. Commit changes: `git commit -am 'Add feature'`
-3. Push to branch: `git push origin feature/your-feature`
-4. Open Pull Request
+1. Clone the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make changes and test
+4. Commit: `git commit -m "Add your feature"`
+5. Push: `git push origin feature/your-feature`
+6. Create Pull Request
 
 ## 📄 License
 
-NexyugTech Company - All Rights Reserved
+© 2024 DPG ITM College. All rights reserved.
 
-## 👥 Support
+## 📞 Support & Contact
 
-For support, contact NexyugTech at https://nexyugtech.com
-
-## 📞 Contact
-
-**DPG ITM College**  
-**NexyugTech Company**  
-https://nexyugtech.com
+- **Email:** support@dpg-itm.edu.in
+- **Admin Dashboard:** `/admin/dashboard`
+- **Documentation:** See deployment guide
+- **Issues:** Report via GitHub issues
 
 ---
 
-**Built with ❤️ for DPG ITM College**
+**Status:** ✅ Production Ready
+**Last Updated:** January 2024
+**Version:** 1.0.0

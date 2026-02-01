@@ -1,68 +1,28 @@
-import React from "react"
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import './globals.css';
+'use client';
 
-const inter = Inter({ subsets: ['latin'] });
-
-export const metadata: Metadata = {
-  title: 'DPG Project Management System',
-  description:
-    'A comprehensive project management system for DPG ITM College by NexyugTech',
-  keywords: [
-    'project management',
-    'education',
-    'dpg',
-    'itm',
-    'college',
-  ],
-  authors: [{ name: 'NexyugTech', url: 'https://nexyugtech.com' }],
-  creator: 'NexyugTech',
-  publisher: 'DPG ITM College',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://dpg-pms.com',
-    siteName: 'DPG Project Management System',
-    images: [
-      {
-        url: 'https://dpg-pms.com/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'DPG Project Management System',
-      },
-    ],
-  },
-  icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
-  },
-};
-
-export const viewport = {
-  themeColor: '#007bff',
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-};
+import { useEffect } from 'react';
+import { useAuthStore } from '@/store/authStore';
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    // Hydrate auth store on mount
+    useAuthStore.getState().hydrate();
+  }, []);
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>DPG Project Management System</title>
+        <meta name="description" content="DPG Project Management System" />
       </head>
-      <body
-        className={`${inter.className} bg-background text-foreground antialiased`}
-      >
-        <main>{children}</main>
+      <body className="bg-gray-50">
+        <div className="min-h-screen">
+          {children}
+        </div>
       </body>
     </html>
   );

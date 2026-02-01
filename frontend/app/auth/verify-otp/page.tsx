@@ -1,248 +1,137 @@
 'use client';
 
-import React from "react"
-
-import { useState, FormEvent, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
-import { authService } from '@/services/auth';
-import Link from 'next/link';
+import toast from 'react-hot-toast';
+import { authAPI } from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
 
-function OTPVerifyContent() {
+export default function VerifyOTPPage() {
+  const [otp, setOtp] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams?.get('email') || '';
+  const { setToken, setUser } = useAuthStore();
 
-  const setUser = useAuthStore((state) => state.setUser);
-  const setIsAuthenticated = useAuthStore((state) => state.setIsAuthenticated);
-
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
-
-  // Countdown timer
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(decodeURIComponent(emailParam));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-    setOtp(value);
-    setError('');
-  };
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      if (!otp || otp.length !== 6) {
-        setError('Please enter a valid 6-digit OTP');
-        setLoading(false);
+      if (otp.length !== 6) {
+        toast.error('OTP must be 6 digits');
         return;
       }
 
-      if (!email) {
-        setError('Email not found. Please start over.');
-        setLoading(false);
-        router.push('/auth/login');
-        return;
+      const response: any = await authAPI.verifyOtp(email, otp);
+      
+      // Store token and user info
+      setToken(response.access_token);
+      setUser({
+        id: response.user_id,
+        email,
+        name: response.name || 'User',
+        role: response.role || 'student',
+      });
+
+      // Redirect based on role
+      switch (response.role) {
+        case 'admin':
+          router.push('/admin/dashboard');
+          break;
+        case 'supervisor':
+          router.push('/supervisor/dashboard');
+          break;
+        case 'student':
+          router.push('/student/dashboard');
+          break;
+        default:
+          router.push('/');
       }
 
-      // Verify OTP
-      const response = await authService.verifyOTP(email, otp);
-
-      if (response.success && response.data?.user) {
-        // Store user in state
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-
-        // Redirect based on role
-        setTimeout(() => {
-          const redirectPath =
-            response.data.user.role === 'STUDENT'
-              ? '/student/dashboard'
-              : response.data.user.role === 'SUPERVISOR'
-                ? '/supervisor/dashboard'
-                : '/admin/dashboard';
-
-          router.push(redirectPath);
-        }, 500);
-      } else {
-        setError(response.error || 'Invalid OTP. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('[v0] OTP verification error:', err);
-      setError(
-        err.response?.data?.message ||
-          err.message ||
-          'Verification failed. Please try again.'
-      );
+      toast.success('Login successful!');
+    } catch (error: any) {
+      toast.error(error.detail || 'Invalid OTP');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    try {
-      setLoading(true);
-      const response = await authService.requestOTP(email);
-
-      if (response.success) {
-        setOtp('');
-        setError('');
-        setTimeLeft(300);
-      } else {
-        setError('Failed to resend OTP');
-      }
-    } catch (err: any) {
-      setError('Failed to resend OTP');
-    } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-light to-background px-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800 px-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Verify OTP</h1>
-          <p className="text-muted">
-            Enter the 6-digit code sent to{' '}
-            <span className="font-semibold">{email}</span>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Verify OTP
+          </h1>
+          <p className="text-gray-600">
+            Enter the 6-digit code sent to {email}
           </p>
         </div>
 
-        {/* Card */}
-        <div className="card shadow-lg">
-          <div className="card-content">
-            {/* Error Message */}
-            {error && (
-              <div className="alert alert-danger mb-6 animate-fade-in">
-                {error}
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* OTP Input */}
-              <div>
-                <label htmlFor="otp" className="form-label">
-                  One-Time Password
-                </label>
-                <input
-                  id="otp"
-                  type="text"
-                  name="otp"
-                  value={otp}
-                  onChange={handleOtpChange}
-                  placeholder="000000"
-                  maxLength={6}
-                  required
-                  disabled={loading || timeLeft === 0}
-                  className="w-full text-center text-2xl letter-spacing-2 font-mono tracking-widest"
-                  aria-label="One-time password"
-                />
-                <p className="text-xs text-muted mt-2">
-                  Check your email for the verification code
-                </p>
-              </div>
-
-              {/* Timer */}
-              <div className="flex items-center justify-between p-3 bg-surface rounded-md border border-border">
-                <span className="text-sm text-muted">Time remaining:</span>
-                <span
-                  className={`text-lg font-mono font-semibold ${
-                    timeLeft < 60 ? 'text-danger' : 'text-primary'
-                  }`}
-                >
-                  {formatTime(timeLeft)}
-                </span>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading || !otp || timeLeft === 0}
-                className="w-full btn btn-primary py-3 font-semibold"
-              >
-                {loading ? 'Verifying...' : 'Verify OTP'}
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="relative my-6">
-              <div className="divider"></div>
-              <div className="absolute inset-x-0 -top-3 flex justify-center">
-                <span className="bg-background px-2 text-xs text-muted">
-                  didn't receive?
-                </span>
-              </div>
-            </div>
-
-            {/* Resend OTP */}
-            <button
-              onClick={handleResendOTP}
-              disabled={loading || timeLeft > 0}
-              className="w-full btn btn-outline py-2 font-semibold"
-            >
-              Resend OTP
-            </button>
+        <form onSubmit={handleVerifyOTP} className="space-y-4">
+          <div>
+            <label htmlFor="otp" className="block text-sm font-medium text-gray-700">
+              One-Time Password
+            </label>
+            <input
+              type="text"
+              id="otp"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              maxLength={6}
+              placeholder="000000"
+              className="mt-1 w-full px-4 py-2 text-center text-2xl border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent font-mono tracking-widest"
+              disabled={isLoading || timeLeft <= 0}
+            />
           </div>
 
-          {/* Footer */}
-          <div className="card-footer bg-surface text-center">
-            <Link
-              href="/auth/login"
-              className="text-primary hover:underline text-sm"
-            >
-              ← Back to Login
-            </Link>
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              OTP expires in:{' '}
+              <span className={timeLeft < 60 ? 'text-red-600 font-bold' : 'text-gray-900 font-bold'}>
+                {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+              </span>
+            </p>
           </div>
-        </div>
 
-        {/* Footer Text */}
-        <div className="text-center mt-6 text-sm text-muted">
-          <p>
-            Having trouble?{' '}
-            <a
-              href="https://nexyugtech.com/support"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
-            >
-              Contact Support
-            </a>
-          </p>
+          <button
+            type="submit"
+            disabled={isLoading || otp.length !== 6 || timeLeft <= 0}
+            className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          >
+            {isLoading ? 'Verifying...' : 'Verify OTP'}
+          </button>
+        </form>
+
+        <div className="mt-6">
+          <button
+            onClick={() => router.push('/auth/login')}
+            className="w-full text-blue-600 hover:text-blue-700 text-sm font-medium"
+          >
+            Back to Login
+          </button>
         </div>
       </div>
     </div>
-  );
-}
-
-export default function OTPVerifyPage() {
-  return (
-    <Suspense>
-      <OTPVerifyContent />
-    </Suspense>
   );
 }

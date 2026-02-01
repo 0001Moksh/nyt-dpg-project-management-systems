@@ -1,199 +1,214 @@
-import aiosmtplib
+import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import logging
-from app.config import settings
-from jinja2 import Template
-
-logger = logging.getLogger(__name__)
-
+from email.mime.base import MIMEBase
+from email import encoders
+from app.core.config import settings
+import asyncio
+from typing import List
 
 class EmailService:
-    """Service for sending emails via SMTP"""
-
-    def __init__(self):
-        self.smtp_host = settings.SMTP_HOST
-        self.smtp_port = settings.SMTP_PORT
-        self.smtp_user = settings.SMTP_USER
-        self.smtp_password = settings.SMTP_PASSWORD
-        self.from_email = settings.SMTP_FROM_EMAIL
-        self.from_name = settings.SMTP_FROM_NAME
-
-    async def send_email(
-        self,
-        to_email: str,
-        subject: str,
-        html_content: str,
-        text_content: str = None,
-    ) -> bool:
-        """Send email via SMTP"""
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = f"{self.from_name} <{self.from_email}>"
-            msg["To"] = to_email
-
-            if text_content:
-                part1 = MIMEText(text_content, "plain")
-                msg.attach(part1)
-
-            part2 = MIMEText(html_content, "html")
-            msg.attach(part2)
-
-            async with aiosmtplib.SMTP(hostname=self.smtp_host, port=self.smtp_port) as smtp:
-                await smtp.login(self.smtp_user, self.smtp_password)
-                await smtp.send_message(msg)
-
-            logger.info(f"Email sent successfully to {to_email}")
-            return True
-
-        except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {str(e)}")
-            return False
-
-    async def send_otp_email(self, to_email: str, otp: str, name: str = "User") -> bool:
+    """Email handling service"""
+    
+    @staticmethod
+    def send_otp_email(email: str, otp: str) -> bool:
         """Send OTP email"""
-        subject = "Your DPG PMS Login Code"
-        html_template = """
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2>Welcome to DPG Project Management System</h2>
-                    <p>Hello {name},</p>
-                    <p>Your One-Time Password (OTP) for login is:</p>
-                    <div style="background-color: #f0f0f0; padding: 20px; text-align: center; border-radius: 5px; margin: 20px 0;">
-                        <h1 style="margin: 0; font-size: 32px; color: #007bff; letter-spacing: 5px;">{otp}</h1>
-                    </div>
-                    <p><strong>This OTP is valid for 5 minutes only.</strong></p>
-                    <p>If you didn't request this code, please ignore this email.</p>
-                    <hr style="margin: 20px 0;">
-                    <p style="font-size: 12px; color: #666;">
-                        DPG Project Management System<br/>
-                        NexyugTech Company
+        try:
+            subject = f"Your {settings.APP_NAME} OTP"
+            body = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2>DPG Project Management System</h2>
+                    <p>Your One-Time Password (OTP) is:</p>
+                    <h3 style="color: #007bff; font-size: 24px; letter-spacing: 5px;">{otp}</h3>
+                    <p>This OTP will expire in {settings.OTP_EXPIRY_MINUTES} minutes.</p>
+                    <p>If you didn't request this OTP, please ignore this email.</p>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">
+                        © {settings.COLLEGE_NAME if hasattr(settings, 'COLLEGE_NAME') else 'DPG ITM'}. All rights reserved.
                     </p>
-                </div>
-            </body>
-        </html>
-        """
-
-        text_content = f"Your OTP code is: {otp}. Valid for 5 minutes."
-
-        html_content = html_template.format(name=name, otp=otp)
-        return await self.send_email(to_email, subject, html_content, text_content)
-
-    async def send_team_approval_email(
-        self, to_email: str, team_name: str, project_name: str, approval_link: str
+                </body>
+            </html>
+            """
+            EmailService._send_email(email, subject, body)
+            return True
+        except Exception as e:
+            print(f"Error sending OTP email: {e}")
+            return False
+    
+    @staticmethod
+    def send_team_invitation_email(email: str, team_name: str, leader_name: str, accept_link: str) -> bool:
+        """Send team invitation email"""
+        try:
+            subject = f"Team Invitation: {team_name}"
+            body = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2>Team Invitation</h2>
+                    <p>Hi,</p>
+                    <p><strong>{leader_name}</strong> has invited you to join the team <strong>{team_name}</strong>.</p>
+                    <p>
+                        <a href="{accept_link}" style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            View Invitation
+                        </a>
+                    </p>
+                    <p>If you didn't expect this invitation, please ignore this email.</p>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">© DPG Project Management System</p>
+                </body>
+            </html>
+            """
+            EmailService._send_email(email, subject, body)
+            return True
+        except Exception as e:
+            print(f"Error sending team invitation email: {e}")
+            return False
+    
+    @staticmethod
+    def send_submission_feedback_email(
+        email: str,
+        team_name: str,
+        stage: str,
+        supervisor_score: float = None,
+        comments: str = None
     ) -> bool:
-        """Send team approval email to members"""
-        subject = f"Team Approval Request: {team_name}"
-        html_template = """
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2>Team Approval Request</h2>
-                    <p>You have been added to the team <strong>{team_name}</strong> for project <strong>{project_name}</strong>.</p>
-                    <p>Please review and approve to join the team:</p>
-                    <div style="margin: 20px 0;">
-                        <a href="{approval_link}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Review & Approve</a>
-                    </div>
-                    <p><strong>Note:</strong> You must approve within 24 hours to join the team.</p>
-                </div>
-            </body>
-        </html>
-        """
+        """Send submission feedback email"""
+        try:
+            subject = f"Feedback on {stage} Submission"
+            
+            score_html = f"<p><strong>Score:</strong> {supervisor_score}/10</p>" if supervisor_score else ""
+            comments_html = f"<p><strong>Feedback:</strong><br>{comments}</p>" if comments else ""
+            
+            body = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2>Submission Feedback</h2>
+                    <p>Hi,</p>
+                    <p>Your team <strong>{team_name}</strong> has received feedback on the <strong>{stage}</strong> submission.</p>
+                    {score_html}
+                    {comments_html}
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">© DPG Project Management System</p>
+                </body>
+            </html>
+            """
+            EmailService._send_email(email, subject, body)
+            return True
+        except Exception as e:
+            print(f"Error sending feedback email: {e}")
+            return False
+    
+    @staticmethod
+    def send_deadline_reminder_email(email: str, project_title: str, deadline: str) -> bool:
+        """Send deadline reminder email"""
+        try:
+            subject = f"Deadline Reminder: {project_title}"
+            body = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2>Deadline Reminder</h2>
+                    <p>Hi,</p>
+                    <p>This is a reminder that the deadline for <strong>{project_title}</strong> is approaching.</p>
+                    <p><strong>Deadline:</strong> {deadline}</p>
+                    <p>Please submit your work before the deadline.</p>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">© DPG Project Management System</p>
+                </body>
+            </html>
+            """
+            EmailService._send_email(email, subject, body)
+            return True
+        except Exception as e:
+            print(f"Error sending deadline reminder: {e}")
+            return False
+    
+    @staticmethod
+    def send_supervisor_request_email(email: str, admin_name: str, status: str) -> bool:
+        """Send supervisor request approval/rejection email"""
+        try:
+            if status == "approved":
+                subject = "Supervisor Access Approved"
+                message = "Your request to become a supervisor has been approved."
+                body_message = f"<p style='color: #28a745;'>{message}</p>"
+            else:
+                subject = "Supervisor Access Request Rejected"
+                message = "Your request to become a supervisor has been rejected."
+                body_message = f"<p style='color: #dc3545;'>{message}</p>"
+            
+            body = f"""
+            <html>
+                <body style="font-family: Arial, sans-serif;">
+                    <h2>Request Status Update</h2>
+                    <p>Hi,</p>
+                    {body_message}
+                    <p>If you have any questions, please contact the administration.</p>
+                    <hr>
+                    <p style="color: #666; font-size: 12px;">© DPG Project Management System</p>
+                </body>
+            </html>
+            """
+            EmailService._send_email(email, subject, body)
+            return True
+        except Exception as e:
+            print(f"Error sending supervisor request email: {e}")
+            return False
+    
+    @staticmethod
+    def _send_email(to_email: str, subject: str, body: str) -> None:
+        """Internal method to send email"""
+        try:
+            msg = MIMEMultipart('alternative')
+            msg['From'] = settings.SMTP_FROM_EMAIL
+            msg['To'] = to_email
+            msg['Subject'] = subject
+            
+            # Attach HTML body
+            msg.attach(MIMEText(body, 'html'))
+            
+            # Send email
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+                server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.send_message(msg)
+        except Exception as e:
+            print(f"Failed to send email to {to_email}: {e}")
+            raise
 
-        html_content = html_template.format(
-            team_name=team_name,
-            project_name=project_name,
-            approval_link=approval_link,
+class NotificationService:
+    """In-app notification service"""
+    
+    @staticmethod
+    def create_notification(user_id: int, title: str, message: str, notification_type: str, db) -> None:
+        """Create in-app notification"""
+        from app.models.models import Notification
+        
+        notification = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            notification_type=notification_type
         )
-        return await self.send_email(to_email, subject, html_content)
-
-    async def send_submission_notification(
-        self, to_email: str, team_name: str, stage: str, project_name: str
-    ) -> bool:
-        """Send submission notification to supervisor"""
-        subject = f"New Submission: {project_name} - {stage}"
-        html_template = """
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2>New Project Submission</h2>
-                    <p>Team <strong>{team_name}</strong> has submitted their work for <strong>{stage}</strong> stage of project <strong>{project_name}</strong>.</p>
-                    <p>Please review and score the submission in the dashboard.</p>
-                    <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        <p><strong>Team:</strong> {team_name}</p>
-                        <p><strong>Project:</strong> {project_name}</p>
-                        <p><strong>Stage:</strong> {stage}</p>
-                    </div>
-                </div>
-            </body>
-        </html>
-        """
-
-        html_content = html_template.format(
-            team_name=team_name,
-            stage=stage,
-            project_name=project_name,
-        )
-        return await self.send_email(to_email, subject, html_content)
-
-    async def send_supervisor_assignment_email(
-        self, to_email: str, project_name: str, teams: list
-    ) -> bool:
-        """Send supervisor assignment notification"""
-        subject = f"You have been assigned as supervisor for {project_name}"
-        teams_html = "\n".join([f"<li>{team}</li>" for team in teams])
-
-        html_template = f"""
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2>Supervisor Assignment</h2>
-                    <p>You have been assigned as supervisor for the project <strong>{project_name}</strong>.</p>
-                    <p><strong>Teams under your supervision:</strong></p>
-                    <ul>
-                        {teams_html}
-                    </ul>
-                    <p>Please log in to the dashboard to view and manage the submissions.</p>
-                </div>
-            </body>
-        </html>
-        """
-
-        return await self.send_email(to_email, subject, html_template)
-
-    async def send_review_feedback_email(
-        self, to_email: str, team_name: str, stage: str, feedback: str, score: float
-    ) -> bool:
-        """Send review feedback to team"""
-        subject = f"Review Feedback: {stage} Stage - Score: {score}/10"
-        html_template = """
-        <html>
-            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-                <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <h2>Stage Review Feedback</h2>
-                    <p>Hello {team_name} team,</p>
-                    <p>Your submission for the <strong>{stage}</strong> stage has been reviewed.</p>
-                    <div style="background-color: #f0f0f0; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                        <p><strong>Score:</strong> {score}/10</p>
-                        <p><strong>Feedback:</strong></p>
-                        <p>{feedback}</p>
-                    </div>
-                    <p>Please log in to the dashboard to view more details.</p>
-                </div>
-            </body>
-        </html>
-        """
-
-        html_content = html_template.format(
-            team_name=team_name,
-            stage=stage,
-            feedback=feedback,
-            score=score,
-        )
-        return await self.send_email(to_email, subject, html_content)
-
-
-# Singleton instance
-email_service = EmailService()
+        db.add(notification)
+        db.commit()
+    
+    @staticmethod
+    def get_user_notifications(user_id: int, db, unread_only: bool = False):
+        """Get user notifications"""
+        from app.models.models import Notification
+        
+        query = db.query(Notification).filter(Notification.user_id == user_id)
+        
+        if unread_only:
+            query = query.filter(Notification.is_read == False)
+        
+        return query.order_by(Notification.created_at.desc()).all()
+    
+    @staticmethod
+    def mark_notification_as_read(notification_id: int, db):
+        """Mark notification as read"""
+        from app.models.models import Notification
+        
+        notification = db.query(Notification).filter(Notification.id == notification_id).first()
+        if notification:
+            notification.is_read = True
+            db.commit()
